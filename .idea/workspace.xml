@@ -143,7 +143,7 @@
     <property name="dynamic.classpath" value="false" />
     <property name="project.structure.last.edited" value="Modules" />
     <property name="project.structure.proportion" value="0.15" />
-    <property name="project.structure.side.proportion" value="0.0" />
+    <property name="project.structure.side.proportion" value="0.2" />
   </component>
   <component name="RunManager" selected="Application.CachingHTTPClient">
     <configuration default="false" name="CachingHTTPClient" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">
@@ -431,12 +431,12 @@
       <updated>1423362667684</updated>
       <workItem from="1423362668085" duration="11000" />
       <workItem from="1423362738032" duration="81000" />
-      <workItem from="1423362847676" duration="1079000" />
+      <workItem from="1423362847676" duration="1699000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="1171000" />
+    <option name="totallyTimeSpent" value="1791000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="-1" y="26" width="1922" height="1055" extended-state="6" />
