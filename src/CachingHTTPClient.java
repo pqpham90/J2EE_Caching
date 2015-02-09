@@ -1,3 +1,5 @@
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
@@ -27,8 +29,8 @@ public class CachingHTTPClient {
 
 		assert url != null;
 
-		String cacheDir = "/tmp/<uteid>/assignment1/" + url.toString().replace("/", "&#92;");
-		cacheDir += ".cache";
+		String cacheDir = File.separator + "tmp" + File.separator + "pnp24" + File.separator + "assignment1" + File.separator;
+		String cacheFile = "Test"; // url.toString().replace("/", "&#92;") + ".cache";
 
 		System.out.println(cacheDir);
 
@@ -67,13 +69,18 @@ public class CachingHTTPClient {
 			byte[] buffer = new byte[4096];
 			int n = - 1;
 
+			File file = new File(cacheDir, cacheFile);
+			file.getParentFile().mkdirs();
+			FileOutputStream out = new FileOutputStream(file);
+
 			while ( (n = input.read(buffer)) != -1)
 			{
 				if (n > 0)
 				{
-					System.out.write(buffer, 0, n);
+					out.write(buffer, 0, n);
 				}
 			}
+			out.close();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
