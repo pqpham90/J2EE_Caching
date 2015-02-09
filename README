@@ -1,0 +1,9 @@
+Phillipquang Pham
+PNP248
+
+Architecture:
+I turn the url into the filename of the cache and just search for that in the
+tmp folder. After that I follow the caching rules to determine to use the cache
+or not. If no cache is found, then once again I apply the caching rules.
+
+I don't detect for dynamic resources
