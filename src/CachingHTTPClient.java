@@ -5,10 +5,10 @@ import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.HashMap;
 
 /**
  * Created by pqpham90 on 2/7/15.
@@ -30,38 +30,36 @@ public class CachingHTTPClient {
 		assert url != null;
 
 		String cacheDir = File.separator + "tmp" + File.separator + "pnp24" + File.separator + "assignment1" + File.separator;
-		String cacheFile = "Test"; // url.toString().replace("/", "&#92;") + ".cache";
-
-		System.out.println(cacheDir);
+		String cacheFile =  url.toString().replace("/", "&#92;") + ".html";
 
 		try {
 			URLConnection connection = url.openConnection();
+			SimpleDateFormat dateParser = new SimpleDateFormat("EEE,d MMM yyyy HH:mm:ss zzz");
+
+
+			String expires = connection.getHeaderField("Expires");
+			String cacheControl = connection.getHeaderField("Cache-Control");
+			String ifModifiedSince = connection.getHeaderField("Last-Modified");
+
+			int maxAge = Integer.parseInt(cacheControl.replaceAll("[\\D]", ""));
+
+			Date expiresDate = null;
+			Date ifModifiedDate = null;
+
+			try {
+				expiresDate = dateParser.parse(expires);
+				ifModifiedDate = dateParser.parse(expires);
+			}
+			catch (ParseException e) {
+				System.out.println("Unexpected Date Format");
+			}
+
+			CacheMap cacheM = new CacheMap(expiresDate, maxAge, ifModifiedDate);
+
 
 			System.out.println("Expires:" + connection.getHeaderField("Expires"));
 			System.out.println("Cache-Control:" + connection.getHeaderField("Cache-Control"));
 			System.out.println("Last-Modified:" + connection.getHeaderField("Last-Modified"));
-
-			System.out.println("******");
-
-			Map<String, List<String>> headerFields = connection.getHeaderFields();
-
-			Set<String> headerFieldsSet = headerFields.keySet();
-			Iterator<String> hearerFieldsIter = headerFieldsSet.iterator();
-
-			while (hearerFieldsIter.hasNext()) {
-
-				String headerFieldKey = hearerFieldsIter.next();
-				List<String> headerFieldValue = headerFields.get(headerFieldKey);
-
-				StringBuilder sb = new StringBuilder();
-				for (String value : headerFieldValue) {
-					sb.append(value);
-					sb.append("");
-				}
-
-				System.out.println(headerFieldKey + "=" + sb.toString());
-
-			}
 
 			System.out.println("******");
 
@@ -72,6 +70,18 @@ public class CachingHTTPClient {
 			File file = new File(cacheDir, cacheFile);
 			file.getParentFile().mkdirs();
 			FileOutputStream out = new FileOutputStream(file);
+
+			HashMap<String, Object> fileObj = new HashMap<String, Object>();
+
+//			String commentStart = "<!--\n";
+//			String commentEnd = "-->\n";
+//
+//			out.write(commentStart.getBytes());
+//
+//			out.write((connection.getHeaderField("Expires") + "\n").getBytes());
+//			out.write((connection.getHeaderField("Cache-Control") + "\n").getBytes());
+//			out.write((connection.getHeaderField("Last-Modified") + "\n").getBytes());
+//			out.write(commentEnd.getBytes());
 
 			while ( (n = input.read(buffer)) != -1)
 			{
