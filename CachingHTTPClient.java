@@ -11,6 +11,8 @@ import java.util.Locale;
  * Created by pqpham90 on 2/7/15.
  */
 public class CachingHTTPClient {
+	static final long ONE_SECOND_IN_MILLIS=1000;
+
 	public static void main(String args[]) {
 		// take in input
 		if (args.length < 1) {
@@ -27,7 +29,7 @@ public class CachingHTTPClient {
 		assert url != null;
 
 		// location of cache file
-		String cacheDir = File.separator + "tmp" + File.separator + "pnp24" + File.separator + "assignment1" + File.separator;
+		String cacheDir = File.separator + "tmp" + File.separator + "pnp248" + File.separator + "assignment1" + File.separator;
 		String cacheFile =  url.toString().replace("/", "&#92;") + ".cache";
 
 		try {
@@ -36,17 +38,20 @@ public class CachingHTTPClient {
 			connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.95 Safari/537.11");
 
 			// flag cache status
-			boolean isExpired = false;
-			boolean isPastMaxAge = false;
-			boolean hasBeenModified = false;
 			boolean newCache = false;
+			boolean oldCache = false;
+			boolean hasMaxAge = false;
 
 			// parse information from header
 			SimpleDateFormat dateParser = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z", Locale.ENGLISH);
 			String expires = connection.getHeaderField("Expires");
-			String maxAge = connection.getHeaderField("Cache-Control");
+			String cacheControl = connection.getHeaderField("Cache-Control");
 			String ifModifiedSince = connection.getHeaderField("If-Modified-Since");
 			String lastModified = connection.getHeaderField("Last-Modified");
+
+			if(cacheControl.contains("max-age")) {
+				hasMaxAge = true;
+			}
 
 			// produce date object from dates
 			Date currentDate = new Date();
@@ -56,9 +61,6 @@ public class CachingHTTPClient {
 			try {
 				if(expires != null) {
 					expiresDate = dateParser.parse(expires);
-				}
-				else {
-					isExpired = true;
 				}
 
 				if (ifModifiedSince != null) {
@@ -73,32 +75,17 @@ public class CachingHTTPClient {
 				System.out.println("Unexpected Date Format");
 			}
 
-			if (expiresDate != null)
-				System.out.println(expiresDate.toString());
-			else
-				System.out.println("null");
-			System.out.println(maxAge);
-			if (ifModifiedDate != null)
-				System.out.println(ifModifiedDate.toString());
-			else
-				System.out.println("null");
-			if(lastModifiedDate != null)
-				System.out.println(lastModifiedDate.toString());
-			else
-				System.out.println("null");
-
-
-			System.out.println("******");
-
-
 			File file = new File(cacheDir, cacheFile);
+			CacheMap cacheM = null;
+			int maxAge = -1;
+			if(hasMaxAge) {
+				maxAge = Integer.parseInt(cacheControl.replaceAll("\\D+",""));
+			}
 
+			// cache exists
 			if (file.exists() && !file.isDirectory()) {
-				System.out.println("Found Cache!");
 				FileInputStream fileIn = new FileInputStream(cacheDir + cacheFile + ".ser");
 				ObjectInputStream in = new ObjectInputStream(fileIn);
-
-				CacheMap cacheM = null;
 
 				try {
 					cacheM = (CacheMap) in.readObject();
@@ -109,10 +96,52 @@ public class CachingHTTPClient {
 
 				in.close();
 				fileIn.close();
+
+				long t = expiresDate.getTime();
+				Date newDate = new Date (t + (maxAge * ONE_SECOND_IN_MILLIS));
+
+				// cache logic
+				if(hasMaxAge) {
+					if (newDate.compareTo(currentDate) < 0) {
+						newCache = true;
+					}
+					else {
+						oldCache = true;
+					}
+				}
+				else {
+					if(expiresDate.compareTo(currentDate) < 0) {
+						newCache = true;
+					}
+					else if (expiresDate.compareTo(currentDate) > 0) {
+						if(ifModifiedDate.compareTo(currentDate) < 1) {
+							newCache = true;
+						}
+					}
+					else {
+						oldCache = true;
+					}
+				}
+
+				// cache is no longer valid, remove
+				if (!oldCache) {
+					file.delete();
+					File mapFile = new File(cacheDir, cacheFile + ".ser");
+					mapFile.delete();
+				}
+			}
+			// no cache found
+			else {
+				if (maxAge > 0) {
+					newCache = true;
+				}
+				else if (expiresDate.compareTo(currentDate) > 0) {
+					newCache = true;
+				}
 			}
 
 			if (newCache) {
-				CacheMap cacheM = new CacheMap(expiresDate, maxAge, ifModifiedDate,lastModifiedDate);
+				cacheM = new CacheMap(expiresDate, cacheControl, ifModifiedDate, lastModifiedDate);
 
 				InputStream input = connection.getInputStream();
 				writeCache(file, input);
@@ -121,6 +150,17 @@ public class CachingHTTPClient {
 
 				File mapFile = new File(cacheDir, cacheFile + ".ser");
 				writeMap(mapFile, cacheM);
+
+			}
+			else if (oldCache) {
+				System.out.println("***** Serving from the cache – start *****");
+				printCache(cacheDir + cacheFile);
+				System.out.println("***** Serving from the cache – end *****");
+			}
+			else {
+				System.out.println("***** Serving from the source – start *****");
+				printResponse(connection);
+				System.out.println("***** Serving from the source – end *****");
 			}
 
 		} catch (IOException e) {
@@ -137,13 +177,16 @@ public class CachingHTTPClient {
 		file.getParentFile().mkdirs();
 		FileOutputStream out = new FileOutputStream(file);
 
+		System.out.println("***** Serving from the source – start *****");
 		while ( (n = input.read(buffer)) != -1)
 		{
 			if (n > 0)
 			{
 				out.write(buffer, 0, n);
+				System.out.write(buffer, 0, n);
 			}
 		}
+		System.out.println("***** Serving from the source – end *****");
 		out.close();
 	}
 
@@ -151,7 +194,6 @@ public class CachingHTTPClient {
 	public static void writeMap (File mapFile, CacheMap cacheM) throws IOException {
 		mapFile.getParentFile().mkdirs();
 
-		System.out.println("Here");
 		FileOutputStream fileOut = new FileOutputStream(mapFile);
 		ObjectOutputStream out = new ObjectOutputStream(fileOut);
 		out.writeObject(cacheM);
@@ -159,7 +201,8 @@ public class CachingHTTPClient {
 		fileOut.close();
 	}
 
-	public static void printReponse(URLConnection connection) throws IOException {
+	// writes to console from URL
+	public static void printResponse(URLConnection connection) throws IOException {
 		InputStream input = connection.getInputStream();
 		byte[] buffer = new byte[4096];
 		int n = - 1;
@@ -173,6 +216,7 @@ public class CachingHTTPClient {
 		}
 	}
 
+	// writes to console from cache
 	public static void printCache(String file) throws IOException {
 		FileInputStream input = new FileInputStream(file);
 		byte[] buffer = new byte[4096];
@@ -185,6 +229,8 @@ public class CachingHTTPClient {
 				System.out.write(buffer, 0, n);
 			}
 		}
+
+		System.out.println();
 	}
 
 
