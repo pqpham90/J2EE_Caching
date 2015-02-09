@@ -1,4 +1,3 @@
-import java.io.File;
 import java.util.Date;
 
 /**
@@ -6,14 +5,20 @@ import java.util.Date;
  */
 public class CacheMap implements java.io.Serializable {
 	private Date expires;
-	private int maxAge;
+	private String maxAge;
 	private Date ifModifiedSince;
+	private Date lastModified;
 
-	private File cacheFile;
+	private String cacheFile;
 
-	public CacheMap(Date e, int m, Date i) {
+	public CacheMap(Date e, String m, Date i, Date l) {
 		expires = e;
 		maxAge = m;
+		lastModified = l;
 		ifModifiedSince = i;
+	}
+
+	public String getMaxAge() {
+		return maxAge;
 	}
 }
