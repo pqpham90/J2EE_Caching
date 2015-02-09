@@ -39,6 +39,7 @@ public class CachingHTTPClient {
 			boolean isExpired = false;
 			boolean isPastMaxAge = false;
 			boolean hasBeenModified = false;
+			boolean newCache = false;
 
 			// parse information from header
 			SimpleDateFormat dateParser = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z", Locale.ENGLISH);
@@ -48,6 +49,7 @@ public class CachingHTTPClient {
 			String lastModified = connection.getHeaderField("Last-Modified");
 
 			// produce date object from dates
+			Date currentDate = new Date();
 			Date expiresDate = null;
 			Date ifModifiedDate = null;
 			Date lastModifiedDate = null;
@@ -88,6 +90,7 @@ public class CachingHTTPClient {
 
 			System.out.println("******");
 
+
 			File file = new File(cacheDir, cacheFile);
 
 			if (file.exists() && !file.isDirectory()) {
@@ -106,22 +109,24 @@ public class CachingHTTPClient {
 
 				in.close();
 				fileIn.close();
-
-				System.out.println(cacheM.getMaxAge());
-
 			}
-			else {
+
+			if (newCache) {
 				CacheMap cacheM = new CacheMap(expiresDate, maxAge, ifModifiedDate,lastModifiedDate);
 
 				InputStream input = connection.getInputStream();
 				writeCache(file, input);
 
+				cacheM.setCacheFile(cacheDir + cacheFile);
+
 				File mapFile = new File(cacheDir, cacheFile + ".ser");
 				writeMap(mapFile, cacheM);
 			}
+
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+
 	}
 
 	// write out the file, obtain from devdatta
@@ -153,5 +158,35 @@ public class CachingHTTPClient {
 		out.close();
 		fileOut.close();
 	}
+
+	public static void printReponse(URLConnection connection) throws IOException {
+		InputStream input = connection.getInputStream();
+		byte[] buffer = new byte[4096];
+		int n = - 1;
+
+		while ( (n = input.read(buffer)) != -1)
+		{
+			if (n > 0)
+			{
+				System.out.write(buffer, 0, n);
+			}
+		}
+	}
+
+	public static void printCache(String file) throws IOException {
+		FileInputStream input = new FileInputStream(file);
+		byte[] buffer = new byte[4096];
+		int n = - 1;
+
+		while ( (n = input.read(buffer)) != -1)
+		{
+			if (n > 0)
+			{
+				System.out.write(buffer, 0, n);
+			}
+		}
+	}
+
+
 }
 

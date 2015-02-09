@@ -18,7 +18,15 @@ public class CacheMap implements java.io.Serializable {
 		ifModifiedSince = i;
 	}
 
+	public void setCacheFile (String file) {
+		cacheFile = file;
+	}
+
 	public String getMaxAge() {
 		return maxAge;
+	}
+
+	public String getCacheFile() {
+		return cacheFile;
 	}
 }
